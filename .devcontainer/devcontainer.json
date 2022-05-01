@@ -1,0 +1,6 @@
+{
+  "image": "ghcr.io/octodemo/container-nodejs-development:azure-20220501",
+  "extensions": [
+    "HashiCorp.terraform"
+  ]
+}
