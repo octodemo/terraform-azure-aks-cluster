@@ -10,6 +10,6 @@ module "azure" {
 }
 
 output "aks_cluster" {
-  value = module.azure.aks_cluster
+  value     = module.azure.aks_cluster
   sensitive = true
 }
