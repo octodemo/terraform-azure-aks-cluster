@@ -1,26 +1,6 @@
-terraform {
-  required_version = "~>1.1.9"
-
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "3.4.0"
-    }
-  }
-}
-
-provider "azurerm" {
-  features {}
-}
-
-locals {
-  default_tags = {
-    github_demo_resource = "true"
-    environment          = var.environment_name
-  }
-
-  dns_prefix = var.dns_prefix == null ? var.cluster_name : var.dns_prefix
-}
+#
+# Defines our resource group and the Kubernetes cluster within it
+#
 
 resource "azurerm_resource_group" "aks_cluster_resource_group" {
   name     = var.resource_group_name
@@ -36,9 +16,11 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
   name                = var.cluster_name
   location            = azurerm_resource_group.aks_cluster_resource_group.location
   resource_group_name = azurerm_resource_group.aks_cluster_resource_group.name
-  dns_prefix          = local.dns_prefix
+  dns_prefix          = local.aks_cluster_dns_prefix
 
   kubernetes_version = var.kubernetes_version
+
+  http_application_routing_enabled = false
 
   default_node_pool {
     name = "default"
@@ -49,6 +31,8 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
     max_count           = 3
 
     vm_size = var.aks_default_node_pool_vm_size
+    os_disk_size_gb = var.aks_default_os_disk_size_gb
+    vnet_subnet_id  = azurerm_subnet.aks_cluster.id
 
     type  = "VirtualMachineScaleSets"
     zones = var.aks_default_node_pool_zones
@@ -59,8 +43,10 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
   }
 
   network_profile {
-    network_plugin    = "kubenet"
-    load_balancer_sku = "standard"
+    network_plugin    = "azure"
+    dns_service_ip     = var.aks_dns_service_ip
+    docker_bridge_cidr = var.aks_docker_bridge_cidr
+    service_cidr       = var.aks_service_cidr
   }
 
   tags = merge(
@@ -68,6 +54,7 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
     var.resource_tags,
   )
 }
+
 
 data "azurerm_public_ip" "aks_cluster" {
   name                = reverse(split("/", tolist(azurerm_kubernetes_cluster.aks_cluster.network_profile.0.load_balancer_profile.0.effective_outbound_ips)[0]))[0]

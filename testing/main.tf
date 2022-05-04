@@ -1,4 +1,8 @@
 
+provider "azurerm" {
+  features {}
+}
+
 module "azure" {
   source = "../"
 
